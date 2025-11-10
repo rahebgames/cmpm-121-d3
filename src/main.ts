@@ -21,7 +21,7 @@ const CLASSROOM_LATLNG = Leaflet.latLng(
 );
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
-const _CACHE_SPAWN_PROBABILITY = 0.1;
+const CACHE_SPAWN_PROBABILITY = 0.1;
 
 /* global variables */
 let mapDiv: HTMLDivElement;
@@ -72,13 +72,15 @@ function drawCells(): void {
 
   for (let lat = south; lat <= north; lat += TILE_DEGREES) {
     for (let lng = west; lng <= east; lng += TILE_DEGREES) {
+      const seed = `${lat}, ${lng}`;
+      if (luck(seed) >= CACHE_SPAWN_PROBABILITY) continue;
+
       const tileBoundsLiteral: Leaflet.LatLngBoundsLiteral = [
         [lat, lng],
         [lat + TILE_DEGREES, lng + TILE_DEGREES],
       ];
       const tileBounds = Leaflet.latLngBounds(tileBoundsLiteral);
 
-      const seed = `${lat}, ${lng}`;
       const tokenValue = getRandomTokenValue(seed);
 
       const centerLat = tileBounds.getNorth() - tileBounds.getCenter().lat;

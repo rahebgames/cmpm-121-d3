@@ -36,8 +36,8 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] add token data structure (objects containing numbers to keep tokens distinct)
 - [x] add tokens to cells
 - [x] add graphics representing tokens to cells
-- [ ] change token spawning consistency with luck function from starter code
-- [ ] make initial state of cells consistent across page loads
+- [x] change token spawning consistency with luck function from starter code
+- [x] make initial state of cells consistent across page loads
 
 ##### Player Interaction
 
