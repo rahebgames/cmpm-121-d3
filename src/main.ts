@@ -28,6 +28,7 @@ const CLASSROOM_LATLNG = Leaflet.latLng(
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
 const CACHE_SPAWN_PROBABILITY = 0.1;
+const INTERACTABLE_RANGE = 40;
 
 /* global variables */
 let mapDiv: HTMLDivElement;
@@ -159,6 +160,12 @@ function createRectangle(
   const rect = Leaflet.rectangle(tileBounds, rectOptions);
 
   rect.on("click", function (e) {
+    const playerPosition = playerMarker.getLatLng();
+    const rectBounds: Leaflet.LatLngBounds = e.target.getBounds();
+    const distance = playerPosition.distanceTo(rectBounds.getCenter());
+
+    if (distance > INTERACTABLE_RANGE) return;
+
     if (
       inventory?.value == e.target.options.token?.value && inventory != null
     ) {
