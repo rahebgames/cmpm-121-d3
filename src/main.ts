@@ -6,6 +6,11 @@ import "./style.css";
 import "./_leafletWorkaround.ts";
 import _luck from "./_luck.ts";
 
+/* data types */
+interface Token {
+  value: number;
+}
+
 /* constants */
 const CLASSROOM_LATLNG = Leaflet.latLng(
   36.997936938057016,
