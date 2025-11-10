@@ -13,7 +13,6 @@ const CLASSROOM_LATLNG = Leaflet.latLng(
 );
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
-const _NEIGHBORHOOD_SIZE = 8;
 const _CACHE_SPAWN_PROBABILITY = 0.1;
 
 /* global variables */
@@ -21,6 +20,7 @@ let mapDiv: HTMLDivElement;
 let map: Leaflet.Map;
 let playerMarker: Leaflet.Marker;
 
+/* functions */
 function createMap(): void {
   mapDiv = document.createElement("div");
   mapDiv.id = "map";
@@ -46,16 +46,28 @@ function createMap(): void {
   playerMarker.addTo(map);
 }
 
+// Web Mercator projection makes cells look rectangular, they are actually square
 function drawCells(): void {
-  const origin = CLASSROOM_LATLNG;
-  const bounds = Leaflet.latLngBounds([
-    [origin.lat + 0 * TILE_DEGREES, origin.lng + 0 * TILE_DEGREES],
-    [origin.lat + (0 + 1) * TILE_DEGREES, origin.lng + (0 + 1) * TILE_DEGREES],
-  ]);
+  const bounds = map.getBounds();
+  const south = bounds.getSouth();
+  const north = bounds.getNorth();
+  const west = bounds.getWest();
+  const east = bounds.getEast();
 
-  const rect = Leaflet.rectangle(bounds);
-  rect.addTo(map);
+  for (let lat = south; lat <= north; lat += TILE_DEGREES) {
+    for (let lng = west; lng <= east; lng += TILE_DEGREES) {
+      const tileBounds: Leaflet.LatLngBoundsExpression = [
+        [lat, lng],
+        [lat + TILE_DEGREES, lng + TILE_DEGREES],
+      ];
+      const rect = Leaflet.rectangle(tileBounds);
+      rect.addTo(map);
+    }
+  }
 }
 
-createMap();
-drawCells();
+function main(): void {
+  createMap();
+  drawCells();
+}
+main();
