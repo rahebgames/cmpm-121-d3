@@ -33,6 +33,7 @@ const CACHE_SPAWN_PROBABILITY = 0.1;
 let mapDiv: HTMLDivElement;
 let map: Leaflet.Map;
 let inventoryDiv: HTMLDivElement;
+let winDiv: HTMLDivElement | null;
 
 const cellMarkers = new Map<Leaflet.Rectangle, Leaflet.Marker>();
 
@@ -137,6 +138,14 @@ function updateCellDisplay(
   }
 }
 
+function win(): void {
+  if (winDiv != null) return;
+  winDiv = document.createElement("div");
+  winDiv.id = "winDiv";
+  winDiv.textContent = "You win!";
+  document.body.append(winDiv);
+}
+
 function createRectangle(
   tokenValue: number,
   tileBoundsLiteral: Leaflet.LatLngBoundsLiteral,
@@ -150,12 +159,21 @@ function createRectangle(
   const rect = Leaflet.rectangle(tileBounds, rectOptions);
 
   rect.on("click", function (e) {
-    const temp = inventory;
-    inventory = e.target.options.token;
-    e.target.options.token = temp;
+    if (
+      inventory?.value == e.target.options.token?.value && inventory != null
+    ) {
+      e.target.options.token.value *= 2;
+      inventory = null;
+    } else {
+      const temp = inventory;
+      inventory = e.target.options.token;
+      e.target.options.token = temp;
+    }
 
     updateInventoryDisplay();
     updateCellDisplay(e.target, e.target.options.token);
+
+    if (inventory != null && inventory.value >= 8) win();
   });
 
   rect.addTo(map);
