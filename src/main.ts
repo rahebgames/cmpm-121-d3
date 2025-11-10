@@ -26,8 +26,12 @@ const CACHE_SPAWN_PROBABILITY = 0.1;
 /* global variables */
 let mapDiv: HTMLDivElement;
 let map: Leaflet.Map;
-let playerMarker: Leaflet.Marker;
+let statusPanelDiv: HTMLDivElement;
+
 const cellMarkers = new Map<Leaflet.Rectangle, Leaflet.Marker>();
+
+let playerMarker: Leaflet.Marker;
+const _inventory: Token | null = null;
 
 /* functions */
 function createMap(): void {
@@ -142,5 +146,10 @@ function drawCells(): void {
 function main(): void {
   createMap();
   drawCells();
+
+  statusPanelDiv = document.createElement("div");
+  statusPanelDiv.id = "statusPanel";
+  statusPanelDiv.textContent = "No held tokens.";
+  document.body.append(statusPanelDiv);
 }
 main();

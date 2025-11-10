@@ -41,10 +41,10 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 
 ##### Player Interaction
 
-- [ ] add player inventory of only one possible token
-- [ ] show player inventory on screen
+- [x] add player inventory of only one possible token
+- [x] show player inventory on screen
 - [ ] add ability to pick up tokens by clicking cells
-- [ ] limit inventory to one token
+- [x] limit inventory to one token
 - [ ] limit radius of interactable cells
 - [ ] add ability to place tokens on empty cells to empty inventory
 - [ ] add crafting if a token is placed on a cell with an equivalent value
