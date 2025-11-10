@@ -4,11 +4,15 @@ import Leaflet from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "./style.css";
 import "./_leafletWorkaround.ts";
-import _luck from "./_luck.ts";
+import luck from "./_luck.ts";
 
 /* data types */
 interface Token {
   value: number;
+}
+
+interface CellOptions extends Leaflet.PolylineOptions {
+  token?: Token;
 }
 
 /* constants */
@@ -51,6 +55,13 @@ function createMap(): void {
   playerMarker.addTo(map);
 }
 
+function getRandomTokenValue(seed: string): number {
+  const randValue = luck(seed);
+  if (randValue <= 0.6) return 1;
+  if (randValue <= 0.9) return 2;
+  return 4;
+}
+
 // Web Mercator projection makes cells look rectangular, they are actually square
 function drawCells(): void {
   const bounds = map.getBounds();
@@ -65,7 +76,17 @@ function drawCells(): void {
         [lat, lng],
         [lat + TILE_DEGREES, lng + TILE_DEGREES],
       ];
-      const rect = Leaflet.rectangle(tileBounds);
+
+      const seed = `${lat}, ${lng}`;
+      const rectOptions: CellOptions = {
+        token: { value: getRandomTokenValue(seed) },
+      };
+      const rect = Leaflet.rectangle(tileBounds, rectOptions);
+
+      rect.on("click", function (e) {
+        console.log(e.target.options.token);
+      });
+
       rect.addTo(map);
     }
   }

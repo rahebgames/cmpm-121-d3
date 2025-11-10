@@ -34,7 +34,7 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] draw a rectangle representing one cell on the map
 - [x] use loops to draw a whole grid of cells on the map
 - [x] add token data structure (objects containing numbers to keep tokens distinct)
-- [ ] add tokens to cells
+- [x] add tokens to cells
 - [ ] add graphics representing tokens to cells
 - [ ] change token spawning consistency with luck function from starter code
 - [ ] make initial state of cells consistent across page loads
