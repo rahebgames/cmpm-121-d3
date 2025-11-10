@@ -6,12 +6,18 @@ import "./_leafletWorkaround.ts";
 import luck from "./_luck.ts";
 
 /* data types */
+interface Point {
+  x: number;
+  y: number;
+}
+
 interface Token {
   value: number;
 }
 
 interface CellOptions extends Leaflet.PolylineOptions {
   token?: Token;
+  centerDist?: Point;
 }
 
 /* constants */
@@ -26,12 +32,12 @@ const CACHE_SPAWN_PROBABILITY = 0.1;
 /* global variables */
 let mapDiv: HTMLDivElement;
 let map: Leaflet.Map;
-let statusPanelDiv: HTMLDivElement;
+let inventoryDiv: HTMLDivElement;
 
 const cellMarkers = new Map<Leaflet.Rectangle, Leaflet.Marker>();
 
 let playerMarker: Leaflet.Marker;
-const _inventory: Token | null = null;
+let inventory: Token | null = null;
 
 /* functions */
 function createMap(): void {
@@ -68,11 +74,11 @@ function getRandomTokenValue(seed: string): number {
 
 function getDistanceFromCenter(
   tileBounds: Leaflet.LatLngBounds,
-): Leaflet.Point {
+): Point {
   const centerLat = tileBounds.getNorth() - tileBounds.getCenter().lat;
   const centerLng = tileBounds.getEast() - tileBounds.getCenter().lng;
 
-  return new Leaflet.Point(centerLat, centerLng);
+  return { x: centerLat, y: centerLng };
 }
 
 function createIcon(
@@ -98,17 +104,58 @@ function createIcon(
   return iconMarker;
 }
 
+function updateInventoryDisplay(): void {
+  if (inventory == null) inventoryDiv.textContent = "No held tokens.";
+  else inventoryDiv.textContent = `Held token: ${inventory.value}`;
+}
+
+function updateCellDisplay(
+  rect: Leaflet.Rectangle,
+  newToken: Token | null,
+): void {
+  const marker = cellMarkers.get(rect);
+  const options = rect.options as CellOptions;
+
+  if (marker && options.centerDist) {
+    let icon: Leaflet.DivIcon;
+
+    if (newToken != null) {
+      icon = Leaflet.divIcon({
+        html: `<p>${newToken.value}</p>`,
+        className: "icon",
+        iconAnchor: [options.centerDist.x + 6, options.centerDist.y + 40],
+      });
+    } else {
+      icon = Leaflet.divIcon({
+        html: `<p> </p>`,
+        className: "icon",
+        iconAnchor: [options.centerDist.x + 6, options.centerDist.y + 40],
+      });
+    }
+
+    marker.setIcon(icon);
+  }
+}
+
 function createRectangle(
   tokenValue: number,
-  tileBounds: Leaflet.LatLngBoundsLiteral,
+  tileBoundsLiteral: Leaflet.LatLngBoundsLiteral,
 ): Leaflet.Rectangle {
+  const tileBounds = Leaflet.latLngBounds(tileBoundsLiteral);
+
   const rectOptions: CellOptions = {
     token: { value: tokenValue },
+    centerDist: getDistanceFromCenter(tileBounds),
   };
   const rect = Leaflet.rectangle(tileBounds, rectOptions);
 
   rect.on("click", function (e) {
-    console.log(e.target.options.token, cellMarkers.get(e.target));
+    const temp = inventory;
+    inventory = e.target.options.token;
+    e.target.options.token = temp;
+
+    updateInventoryDisplay();
+    updateCellDisplay(e.target, e.target.options.token);
   });
 
   rect.addTo(map);
@@ -147,9 +194,9 @@ function main(): void {
   createMap();
   drawCells();
 
-  statusPanelDiv = document.createElement("div");
-  statusPanelDiv.id = "statusPanel";
-  statusPanelDiv.textContent = "No held tokens.";
-  document.body.append(statusPanelDiv);
+  inventoryDiv = document.createElement("div");
+  inventoryDiv.id = "statusPanel";
+  inventoryDiv.textContent = "No held tokens.";
+  document.body.append(inventoryDiv);
 }
 main();
