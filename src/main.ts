@@ -19,6 +19,7 @@ const _CACHE_SPAWN_PROBABILITY = 0.1;
 /* global variables */
 let mapDiv: HTMLDivElement;
 let map: Leaflet.Map;
+let playerMarker: Leaflet.Marker;
 
 function createMap(): void {
   mapDiv = document.createElement("div");
@@ -39,6 +40,10 @@ function createMap(): void {
     attribution:
       '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(map);
+
+  playerMarker = Leaflet.marker(CLASSROOM_LATLNG);
+  playerMarker.bindTooltip("That's you!");
+  playerMarker.addTo(map);
 }
 
 createMap();
