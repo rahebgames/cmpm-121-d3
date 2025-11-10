@@ -62,6 +62,55 @@ function getRandomTokenValue(seed: string): number {
   return 4;
 }
 
+function getDistanceFromCenter(
+  tileBounds: Leaflet.LatLngBounds,
+): Leaflet.Point {
+  const centerLat = tileBounds.getNorth() - tileBounds.getCenter().lat;
+  const centerLng = tileBounds.getEast() - tileBounds.getCenter().lng;
+
+  return new Leaflet.Point(centerLat, centerLng);
+}
+
+function createIcon(
+  tokenValue: number,
+  tileBoundsLiteral: Leaflet.LatLngBoundsLiteral,
+): Leaflet.Marker {
+  const tileBounds = Leaflet.latLngBounds(tileBoundsLiteral);
+  const centerDist = getDistanceFromCenter(tileBounds);
+
+  const icon = Leaflet.divIcon({
+    html: `<p>${tokenValue}</p>`,
+    className: "icon",
+    iconAnchor: [centerDist.x + 6, centerDist.y + 40],
+  });
+
+  const center = tileBounds.getCenter();
+  const iconMarker = Leaflet.marker(center, {
+    icon: icon,
+    interactive: false,
+  });
+
+  iconMarker.addTo(map);
+  return iconMarker;
+}
+
+function createRectangle(
+  tokenValue: number,
+  tileBounds: Leaflet.LatLngBoundsLiteral,
+): Leaflet.Rectangle {
+  const rectOptions: CellOptions = {
+    token: { value: tokenValue },
+  };
+  const rect = Leaflet.rectangle(tileBounds, rectOptions);
+
+  rect.on("click", function (e) {
+    console.log(e.target.options.token, cellMarkers.get(e.target));
+  });
+
+  rect.addTo(map);
+  return rect;
+}
+
 // Web Mercator projection makes cells look rectangular, they are actually square
 function drawCells(): void {
   const bounds = map.getBounds();
@@ -75,39 +124,15 @@ function drawCells(): void {
       const seed = `${lat}, ${lng}`;
       if (luck(seed) >= CACHE_SPAWN_PROBABILITY) continue;
 
-      const tileBoundsLiteral: Leaflet.LatLngBoundsLiteral = [
+      const tileBounds: Leaflet.LatLngBoundsLiteral = [
         [lat, lng],
         [lat + TILE_DEGREES, lng + TILE_DEGREES],
       ];
-      const tileBounds = Leaflet.latLngBounds(tileBoundsLiteral);
 
       const tokenValue = getRandomTokenValue(seed);
 
-      const centerLat = tileBounds.getNorth() - tileBounds.getCenter().lat;
-      const centerLng = tileBounds.getEast() - tileBounds.getCenter().lng;
-
-      const icon = Leaflet.divIcon({
-        html: `<p>${tokenValue}</p>`,
-        className: "icon",
-        iconAnchor: [centerLng + 6, centerLat + 40],
-      });
-      const center = tileBounds.getCenter();
-      const iconMarker = Leaflet.marker(center, {
-        icon: icon,
-        interactive: false,
-      });
-      iconMarker.addTo(map);
-
-      const rectOptions: CellOptions = {
-        token: { value: tokenValue },
-      };
-      const rect = Leaflet.rectangle(tileBoundsLiteral, rectOptions);
-
-      rect.on("click", function (e) {
-        console.log(e.target.options.token, cellMarkers.get(e.target));
-      });
-
-      rect.addTo(map);
+      const iconMarker = createIcon(tokenValue, tileBounds);
+      const rect = createRectangle(tokenValue, tileBounds);
 
       cellMarkers.set(rect, iconMarker);
     }
