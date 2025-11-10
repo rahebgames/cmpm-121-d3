@@ -1,6 +1,5 @@
 // @deno-types="npm:@types/leaflet"
 import Leaflet from "leaflet";
-
 import "leaflet/dist/leaflet.css";
 import "./style.css";
 import "./_leafletWorkaround.ts";
@@ -28,6 +27,7 @@ const _CACHE_SPAWN_PROBABILITY = 0.1;
 let mapDiv: HTMLDivElement;
 let map: Leaflet.Map;
 let playerMarker: Leaflet.Marker;
+const cellMarkers = new Map<Leaflet.Rectangle, Leaflet.Marker>();
 
 /* functions */
 function createMap(): void {
@@ -72,22 +72,42 @@ function drawCells(): void {
 
   for (let lat = south; lat <= north; lat += TILE_DEGREES) {
     for (let lng = west; lng <= east; lng += TILE_DEGREES) {
-      const tileBounds: Leaflet.LatLngBoundsExpression = [
+      const tileBoundsLiteral: Leaflet.LatLngBoundsLiteral = [
         [lat, lng],
         [lat + TILE_DEGREES, lng + TILE_DEGREES],
       ];
+      const tileBounds = Leaflet.latLngBounds(tileBoundsLiteral);
 
       const seed = `${lat}, ${lng}`;
+      const tokenValue = getRandomTokenValue(seed);
+
+      const centerLat = tileBounds.getNorth() - tileBounds.getCenter().lat;
+      const centerLng = tileBounds.getEast() - tileBounds.getCenter().lng;
+
+      const icon = Leaflet.divIcon({
+        html: `<p>${tokenValue}</p>`,
+        className: "icon",
+        iconAnchor: [centerLng + 6, centerLat + 40],
+      });
+      const center = tileBounds.getCenter();
+      const iconMarker = Leaflet.marker(center, {
+        icon: icon,
+        interactive: false,
+      });
+      iconMarker.addTo(map);
+
       const rectOptions: CellOptions = {
-        token: { value: getRandomTokenValue(seed) },
+        token: { value: tokenValue },
       };
-      const rect = Leaflet.rectangle(tileBounds, rectOptions);
+      const rect = Leaflet.rectangle(tileBoundsLiteral, rectOptions);
 
       rect.on("click", function (e) {
-        console.log(e.target.options.token);
+        console.log(e.target.options.token, cellMarkers.get(e.target));
       });
 
       rect.addTo(map);
+
+      cellMarkers.set(rect, iconMarker);
     }
   }
 }
