@@ -12,7 +12,7 @@ const CLASSROOM_LATLNG = Leaflet.latLng(
   -122.05703507501151,
 );
 const GAMEPLAY_ZOOM_LEVEL = 19;
-const _TILE_DEGREES = 1e-4;
+const TILE_DEGREES = 1e-4;
 const _NEIGHBORHOOD_SIZE = 8;
 const _CACHE_SPAWN_PROBABILITY = 0.1;
 
@@ -46,4 +46,16 @@ function createMap(): void {
   playerMarker.addTo(map);
 }
 
+function drawCells(): void {
+  const origin = CLASSROOM_LATLNG;
+  const bounds = Leaflet.latLngBounds([
+    [origin.lat + 0 * TILE_DEGREES, origin.lng + 0 * TILE_DEGREES],
+    [origin.lat + (0 + 1) * TILE_DEGREES, origin.lng + (0 + 1) * TILE_DEGREES],
+  ]);
+
+  const rect = Leaflet.rectangle(bounds);
+  rect.addTo(map);
+}
+
 createMap();
+drawCells();
