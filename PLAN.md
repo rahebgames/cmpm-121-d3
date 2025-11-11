@@ -50,3 +50,33 @@ Key gameplay challenge: Can players collect and craft tokens from nearby locatio
 - [x] add crafting if a token is placed on a cell with an equivalent value
 - [x] swap values if placed on a cell with a different value
 - [x] add win condition when a token of value 8 is in the inventory
+
+### D3.b: Globe-spanning Gameplay
+
+Key technical challenge: Can you make the cells cover the entire world?
+Key gameplay challenge: Can players move around to collect tokens?
+
+#### Steps
+
+##### Software Requirements
+
+- [ ] add buttons to move in cardinal directions
+- [ ] spawn cells when moved to cover screen
+- [ ] despawn cells when they leave the screen
+- [ ] anchor cell spawns at null island (0 lat, 0 lng)
+
+##### Gameplay Requirements
+
+- [ ] move player when buttons are pressed
+- [ ] make spawn and despawn of cells also work when map is panned
+- [ ] make cells reset when respawning
+- [ ] increase required token value to win
+- [ ] show required token value to win on screen
+
+##### Non-Required Tips
+
+- [ ] change interactibility of cells based on distance (instead of checking on click)
+- [ ] create interface for cells independent of visual representation
+- [ ] add visual indicator for interactable cells
+- [ ] create functions to convert lat lng pairs into cell identifiers
+- [ ] create functions to convert cell identifiers into top left and bottom right lat lng pairs
