@@ -11,6 +11,13 @@ interface Point {
   y: number;
 }
 
+interface Directions {
+  north: number;
+  east: number;
+  south: number;
+  west: number;
+}
+
 interface Token {
   value: number;
 }
@@ -96,6 +103,16 @@ function createButtons(): void {
   });
 }
 
+function getMapBoundsDirections(): Directions {
+  const bounds = map.getBounds();
+  const north = Math.round(bounds.getNorth() / TILE_DEGREES);
+  const east = Math.round(bounds.getEast() / TILE_DEGREES);
+  const south = Math.round(bounds.getSouth() / TILE_DEGREES);
+  const west = Math.round(bounds.getWest() / TILE_DEGREES);
+
+  return { north: north, east: east, south: south, west: west };
+}
+
 function createMap(): void {
   const mapDiv = document.createElement("div");
   mapDiv.id = "map";
@@ -111,15 +128,11 @@ function createMap(): void {
   });
 
   map.on("moveend", function () {
-    const bounds = map.getBounds();
-    const south = Math.round(bounds.getSouth() / TILE_DEGREES);
-    const north = Math.round(bounds.getNorth() / TILE_DEGREES);
-    const west = Math.round(bounds.getWest() / TILE_DEGREES);
-    const east = Math.round(bounds.getEast() / TILE_DEGREES);
+    const dirs = getMapBoundsDirections();
 
     for (const [rect, cell] of cells) {
       const { x, y } = cell.gridCoords;
-      if (y < south || y > north || x < west || x > east) {
+      if (y < dirs.south || y > dirs.north || x < dirs.west || x > dirs.east) {
         rect.remove();
         cell.marker.remove();
         cells.delete(rect);
@@ -257,14 +270,10 @@ function createRectangle(
 
 // Web Mercator projection makes cells look rectangular, they are actually square
 function drawCells(): void {
-  const bounds = map.getBounds();
-  const south = Math.round(bounds.getSouth() / TILE_DEGREES);
-  const north = Math.round(bounds.getNorth() / TILE_DEGREES);
-  const west = Math.round(bounds.getWest() / TILE_DEGREES);
-  const east = Math.round(bounds.getEast() / TILE_DEGREES);
+  const dirs = getMapBoundsDirections();
 
-  for (let gridY = south; gridY <= north; gridY++) {
-    for (let gridX = west; gridX <= east; gridX++) {
+  for (let gridY = dirs.south; gridY <= dirs.north; gridY++) {
+    for (let gridX = dirs.west; gridX <= dirs.east; gridX++) {
       if (
         Array.from(cells.values()).some((cell) =>
           cell.gridCoords.x === gridX && cell.gridCoords.y === gridY
