@@ -15,9 +15,11 @@ interface Token {
   value: number;
 }
 
-interface CellOptions extends Leaflet.PolylineOptions {
-  token?: Token;
-  centerDist?: Point;
+interface Cell {
+  marker: Leaflet.Marker;
+  token: Token | null;
+  gridCoords: Point;
+  centerDistance: Point;
 }
 
 /* constants */
@@ -28,7 +30,7 @@ const CLASSROOM_LATLNG = Leaflet.latLng(
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
 const CACHE_SPAWN_PROBABILITY = 0.1;
-const INTERACTABLE_RANGE = 40;
+const INTERACTABLE_RANGE = 80;
 
 /* global variables */
 let mapDiv: HTMLDivElement;
@@ -36,7 +38,7 @@ let map: Leaflet.Map;
 let inventoryDiv: HTMLDivElement;
 let winDiv: HTMLDivElement | null;
 
-const cellMarkers = new Map<Leaflet.Rectangle, Leaflet.Marker>();
+const cells = new Map<Leaflet.Rectangle, Cell>();
 
 let playerMarker: Leaflet.Marker;
 let inventory: Token | null = null;
@@ -115,23 +117,24 @@ function updateCellDisplay(
   rect: Leaflet.Rectangle,
   newToken: Token | null,
 ): void {
-  const marker = cellMarkers.get(rect);
-  const options = rect.options as CellOptions;
+  const cell = cells.get(rect);
+  if (!cell) return;
+  const marker = cell.marker;
 
-  if (marker && options.centerDist) {
+  if (marker && cell.centerDistance) {
     let icon: Leaflet.DivIcon;
 
     if (newToken != null) {
       icon = Leaflet.divIcon({
         html: `<p>${newToken.value}</p>`,
         className: "icon",
-        iconAnchor: [options.centerDist.x + 6, options.centerDist.y + 40],
+        iconAnchor: [cell.centerDistance.x + 6, cell.centerDistance.y + 40],
       });
     } else {
       icon = Leaflet.divIcon({
         html: `<p> </p>`,
         className: "icon",
-        iconAnchor: [options.centerDist.x + 6, options.centerDist.y + 40],
+        iconAnchor: [cell.centerDistance.x + 6, cell.centerDistance.y + 40],
       });
     }
 
@@ -148,16 +151,10 @@ function win(): void {
 }
 
 function createRectangle(
-  tokenValue: number,
   tileBoundsLiteral: Leaflet.LatLngBoundsLiteral,
 ): Leaflet.Rectangle {
   const tileBounds = Leaflet.latLngBounds(tileBoundsLiteral);
-
-  const rectOptions: CellOptions = {
-    token: { value: tokenValue },
-    centerDist: getDistanceFromCenter(tileBounds),
-  };
-  const rect = Leaflet.rectangle(tileBounds, rectOptions);
+  const rect = Leaflet.rectangle(tileBounds);
 
   rect.on("click", function (e) {
     const playerPosition = playerMarker.getLatLng();
@@ -167,18 +164,18 @@ function createRectangle(
     if (distance > INTERACTABLE_RANGE) return;
 
     if (
-      inventory?.value == e.target.options.token?.value && inventory != null
+      inventory?.value == cells.get(e.target)!.token?.value && inventory != null
     ) {
-      e.target.options.token.value *= 2;
+      cells.get(e.target)!.token!.value *= 2;
       inventory = null;
     } else {
       const temp = inventory;
-      inventory = e.target.options.token;
-      e.target.options.token = temp;
+      inventory = cells.get(e.target)!.token;
+      cells.get(e.target)!.token = temp;
     }
 
     updateInventoryDisplay();
-    updateCellDisplay(e.target, e.target.options.token);
+    updateCellDisplay(e.target, cells.get(e.target)!.token);
 
     if (inventory != null && inventory.value >= 8) win();
   });
@@ -200,17 +197,25 @@ function drawCells(): void {
       const seed = `${lat}, ${lng}`;
       if (luck(seed) >= CACHE_SPAWN_PROBABILITY) continue;
 
-      const tileBounds: Leaflet.LatLngBoundsLiteral = [
+      const tileBoundsLiteral: Leaflet.LatLngBoundsLiteral = [
         [lat, lng],
         [lat + TILE_DEGREES, lng + TILE_DEGREES],
       ];
+      const tileBounds: Leaflet.LatLngBounds = Leaflet.latLngBounds(
+        tileBoundsLiteral,
+      );
 
       const tokenValue = getRandomTokenValue(seed);
 
-      const iconMarker = createIcon(tokenValue, tileBounds);
-      const rect = createRectangle(tokenValue, tileBounds);
+      const iconMarker = createIcon(tokenValue, tileBoundsLiteral);
+      const rect = createRectangle(tileBoundsLiteral);
 
-      cellMarkers.set(rect, iconMarker);
+      cells.set(rect, {
+        marker: iconMarker,
+        token: { value: tokenValue },
+        gridCoords: { x: 0, y: 0 },
+        centerDistance: getDistanceFromCenter(tileBounds),
+      });
     }
   }
 }
