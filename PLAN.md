@@ -60,7 +60,7 @@ Key gameplay challenge: Can players move around to collect tokens?
 
 ##### Software Requirements
 
-- [ ] add buttons to move in cardinal directions
+- [x] add buttons to move in cardinal directions
 - [ ] spawn cells when moved to cover screen
 - [ ] despawn cells when they leave the screen
 - [ ] anchor cell spawns at null island (0 lat, 0 lng)

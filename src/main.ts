@@ -30,22 +30,71 @@ const CLASSROOM_LATLNG = Leaflet.latLng(
 const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
 const CACHE_SPAWN_PROBABILITY = 0.1;
-const INTERACTABLE_RANGE = 80;
+const INTERACTABLE_RANGE = 40;
 
 /* global variables */
-let mapDiv: HTMLDivElement;
 let map: Leaflet.Map;
+const cells = new Map<Leaflet.Rectangle, Cell>();
+
 let inventoryDiv: HTMLDivElement;
 let winDiv: HTMLDivElement | null;
-
-const cells = new Map<Leaflet.Rectangle, Cell>();
 
 let playerMarker: Leaflet.Marker;
 let inventory: Token | null = null;
 
 /* functions */
+function createButtons(): void {
+  const controlPanelDiv = document.createElement("div");
+  controlPanelDiv.id = "controlPanel";
+  document.body.append(controlPanelDiv);
+
+  const northButton = document.createElement("button");
+  northButton.classList.add("moveButton");
+  northButton.textContent = "↑";
+  controlPanelDiv.append(northButton);
+
+  northButton.addEventListener("click", (_e) => {
+    const playerPos = playerMarker.getLatLng();
+    playerMarker.setLatLng([playerPos.lat + TILE_DEGREES, playerPos.lng]);
+  });
+
+  const middleButtonsDiv = document.createElement("div");
+  middleButtonsDiv.id = "middleButtons";
+  controlPanelDiv.append(middleButtonsDiv);
+
+  const westButton = document.createElement("button");
+  westButton.classList.add("moveButton");
+  westButton.textContent = "←";
+  middleButtonsDiv.append(westButton);
+
+  westButton.addEventListener("click", (_e) => {
+    const playerPos = playerMarker.getLatLng();
+    playerMarker.setLatLng([playerPos.lat, playerPos.lng - TILE_DEGREES]);
+  });
+
+  const eastButton = document.createElement("button");
+  eastButton.classList.add("moveButton");
+  eastButton.textContent = "→";
+  middleButtonsDiv.append(eastButton);
+
+  eastButton.addEventListener("click", (_e) => {
+    const playerPos = playerMarker.getLatLng();
+    playerMarker.setLatLng([playerPos.lat, playerPos.lng + TILE_DEGREES]);
+  });
+
+  const southButton = document.createElement("button");
+  southButton.classList.add("moveButton");
+  southButton.textContent = "↓";
+  controlPanelDiv.append(southButton);
+
+  southButton.addEventListener("click", (_e) => {
+    const playerPos = playerMarker.getLatLng();
+    playerMarker.setLatLng([playerPos.lat - TILE_DEGREES, playerPos.lng]);
+  });
+}
+
 function createMap(): void {
-  mapDiv = document.createElement("div");
+  const mapDiv = document.createElement("div");
   mapDiv.id = "map";
   document.body.append(mapDiv);
 
@@ -221,6 +270,8 @@ function drawCells(): void {
 }
 
 function main(): void {
+  createButtons();
+
   createMap();
   drawCells();
 
