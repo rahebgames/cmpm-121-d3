@@ -133,6 +133,7 @@ function createMap(): void {
     }
 
     drawCells();
+    movePlayer(0, 0);
   });
 
   Leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {

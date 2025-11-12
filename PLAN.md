@@ -78,5 +78,3 @@ Key gameplay challenge: Can players move around to collect tokens?
 - [x] change interactibility of cells based on distance (instead of checking on click)
 - [x] create interface for cells independent of visual representation
 - [x] add visual indicator for interactable cells
-- [ ] create functions to convert lat lng pairs into cell identifiers
-- [ ] create functions to convert cell identifiers into top left and bottom right lat lng pairs
