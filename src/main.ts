@@ -27,6 +27,8 @@ interface Cell {
   token: Token | null;
   gridCoords: Point;
   centerDistance: Point;
+  rect: Leaflet.Rectangle;
+  isInteractive: boolean;
 }
 
 /* constants */
@@ -53,6 +55,13 @@ let playerMarker: Leaflet.Marker;
 let inventory: Token | null = null;
 
 /* functions */
+function movePlayer(latOffset: number, lngOffset: number) {
+  const pos = playerMarker.getLatLng();
+  playerMarker.setLatLng([pos.lat + latOffset, pos.lng + lngOffset]).fire(
+    "move",
+  );
+}
+
 function createButtons(): void {
   const controlPanelDiv = document.createElement("div");
   controlPanelDiv.id = "controlPanel";
@@ -62,11 +71,7 @@ function createButtons(): void {
   northButton.classList.add("moveButton");
   northButton.textContent = "↑";
   controlPanelDiv.append(northButton);
-
-  northButton.addEventListener("click", (_e) => {
-    const playerPos = playerMarker.getLatLng();
-    playerMarker.setLatLng([playerPos.lat + TILE_DEGREES, playerPos.lng]);
-  });
+  northButton.addEventListener("click", () => movePlayer(TILE_DEGREES, 0));
 
   const middleButtonsDiv = document.createElement("div");
   middleButtonsDiv.id = "middleButtons";
@@ -76,31 +81,19 @@ function createButtons(): void {
   westButton.classList.add("moveButton");
   westButton.textContent = "←";
   middleButtonsDiv.append(westButton);
-
-  westButton.addEventListener("click", (_e) => {
-    const playerPos = playerMarker.getLatLng();
-    playerMarker.setLatLng([playerPos.lat, playerPos.lng - TILE_DEGREES]);
-  });
+  westButton.addEventListener("click", () => movePlayer(0, -TILE_DEGREES));
 
   const eastButton = document.createElement("button");
   eastButton.classList.add("moveButton");
   eastButton.textContent = "→";
   middleButtonsDiv.append(eastButton);
-
-  eastButton.addEventListener("click", (_e) => {
-    const playerPos = playerMarker.getLatLng();
-    playerMarker.setLatLng([playerPos.lat, playerPos.lng + TILE_DEGREES]);
-  });
+  eastButton.addEventListener("click", () => movePlayer(0, TILE_DEGREES));
 
   const southButton = document.createElement("button");
   southButton.classList.add("moveButton");
   southButton.textContent = "↓";
   controlPanelDiv.append(southButton);
-
-  southButton.addEventListener("click", (_e) => {
-    const playerPos = playerMarker.getLatLng();
-    playerMarker.setLatLng([playerPos.lat - TILE_DEGREES, playerPos.lng]);
-  });
+  southButton.addEventListener("click", () => movePlayer(-TILE_DEGREES, 0));
 }
 
 function getMapBoundsDirections(): Directions {
@@ -151,6 +144,7 @@ function createMap(): void {
   playerMarker = Leaflet.marker(CLASSROOM_LATLNG);
   playerMarker.bindTooltip("That's you!");
   playerMarker.addTo(map);
+  playerMarker.on("move", updateCellInteractivity);
 
   cellGroup = Leaflet.featureGroup();
   cellGroup.addTo(map);
@@ -234,6 +228,32 @@ function win(): void {
   winDiv.textContent = "You win!";
 }
 
+function updateCellInteractivity(): void {
+  const playerPos = playerMarker.getLatLng();
+
+  for (const cell of cells.values()) {
+    const rectCenter = cell.rect.getBounds().getCenter();
+    const distance = playerPos.distanceTo(rectCenter);
+    const withinRange = distance <= INTERACTABLE_RANGE;
+
+    if (withinRange && !cell.isInteractive) {
+      cell.rect.setStyle({ opacity: 1, fillOpacity: 0.7 });
+
+      const element = cell.rect.getElement();
+      if (element) element.classList.add("interactable");
+
+      cell.isInteractive = true;
+    } else if (!withinRange && cell.isInteractive) {
+      cell.rect.setStyle({ opacity: 0.5, fillOpacity: 0.3 });
+
+      const element = cell.rect.getElement();
+      if (element) element.classList.remove("interactable");
+
+      cell.isInteractive = false;
+    }
+  }
+}
+
 function createRectangle(
   tileBoundsLiteral: Leaflet.LatLngBoundsLiteral,
 ): Leaflet.Rectangle {
@@ -241,11 +261,8 @@ function createRectangle(
   const rect = Leaflet.rectangle(tileBounds);
 
   rect.on("click", function (e) {
-    const playerPosition = playerMarker.getLatLng();
-    const rectBounds: Leaflet.LatLngBounds = e.target.getBounds();
-    const distance = playerPosition.distanceTo(rectBounds.getCenter());
-
-    if (distance > INTERACTABLE_RANGE) return;
+    const cell = cells.get(e.target);
+    if (!cell?.isInteractive) return;
 
     if (
       inventory?.value == cells.get(e.target)!.token?.value && inventory != null
@@ -303,6 +320,8 @@ function drawCells(): void {
         centerDistance: getDistanceFromCenter(
           Leaflet.latLngBounds(tileBoundsLiteral),
         ),
+        rect: rect,
+        isInteractive: false,
       });
     }
   }
@@ -323,5 +342,7 @@ function main(): void {
   winDiv.id = "win";
   winDiv.textContent = `You need a token worth ${WIN_REQUIREMENT} to win.`;
   document.body.append(winDiv);
+
+  movePlayer(0, 0);
 }
 main();

@@ -29,6 +29,14 @@
   font-size: 2em;
 }
 
+.leaflet-interactive:hover {
+  cursor: pointer;
+}
+
+.interactable:hover {
+  fill-opacity: 1;
+}
+
 #statusPanel {
   padding: 1rem;
 }
