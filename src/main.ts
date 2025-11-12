@@ -31,6 +31,8 @@ const GAMEPLAY_ZOOM_LEVEL = 19;
 const TILE_DEGREES = 1e-4;
 const CACHE_SPAWN_PROBABILITY = 0.1;
 const INTERACTABLE_RANGE = 40;
+const WIN_REQUIREMENT = 32;
+const winText = "You win!";
 
 /* global variables */
 let map: Leaflet.Map;
@@ -38,7 +40,7 @@ let cellGroup: Leaflet.FeatureGroup;
 const cells = new Map<Leaflet.Rectangle, Cell>();
 
 let inventoryDiv: HTMLDivElement;
-let winDiv: HTMLDivElement | null;
+let winDiv: HTMLDivElement;
 
 let playerMarker: Leaflet.Marker;
 let inventory: Token | null = null;
@@ -108,9 +110,22 @@ function createMap(): void {
     scrollWheelZoom: false,
   });
 
-  map.on("moveend", function (_e) {
-    cellGroup.clearLayers();
-    cells.clear();
+  map.on("moveend", function () {
+    const bounds = map.getBounds();
+    const south = Math.round(bounds.getSouth() / TILE_DEGREES);
+    const north = Math.round(bounds.getNorth() / TILE_DEGREES);
+    const west = Math.round(bounds.getWest() / TILE_DEGREES);
+    const east = Math.round(bounds.getEast() / TILE_DEGREES);
+
+    for (const [rect, cell] of cells) {
+      const { x, y } = cell.gridCoords;
+      if (y < south || y > north || x < west || x > east) {
+        rect.remove();
+        cell.marker.remove();
+        cells.delete(rect);
+      }
+    }
+
     drawCells();
   });
 
@@ -202,11 +217,8 @@ function updateCellDisplay(
 }
 
 function win(): void {
-  if (winDiv != null) return;
-  winDiv = document.createElement("div");
-  winDiv.id = "winDiv";
+  if (winDiv.textContent == winText) return;
   winDiv.textContent = "You win!";
-  document.body.append(winDiv);
 }
 
 function createRectangle(
@@ -236,7 +248,7 @@ function createRectangle(
     updateInventoryDisplay();
     updateCellDisplay(e.target, cells.get(e.target)!.token);
 
-    if (inventory != null && inventory.value >= 8) win();
+    if (inventory != null && inventory.value >= WIN_REQUIREMENT) win();
   });
 
   rect.addTo(cellGroup);
@@ -253,9 +265,16 @@ function drawCells(): void {
 
   for (let gridY = south; gridY <= north; gridY++) {
     for (let gridX = west; gridX <= east; gridX++) {
+      if (
+        Array.from(cells.values()).some((cell) =>
+          cell.gridCoords.x === gridX && cell.gridCoords.y === gridY
+        )
+      ) {
+        continue;
+      }
+
       const lat = gridY * TILE_DEGREES;
       const lng = gridX * TILE_DEGREES;
-
       const seed = `${lat}, ${lng}`;
       if (luck(seed) >= CACHE_SPAWN_PROBABILITY) continue;
 
@@ -263,12 +282,8 @@ function drawCells(): void {
         [lat, lng],
         [lat + TILE_DEGREES, lng + TILE_DEGREES],
       ];
-      const tileBounds: Leaflet.LatLngBounds = Leaflet.latLngBounds(
-        tileBoundsLiteral,
-      );
 
       const tokenValue = getRandomTokenValue(seed);
-
       const iconMarker = createIcon(tokenValue, tileBoundsLiteral);
       const rect = createRectangle(tileBoundsLiteral);
 
@@ -276,7 +291,9 @@ function drawCells(): void {
         marker: iconMarker,
         token: { value: tokenValue },
         gridCoords: { x: gridX, y: gridY },
-        centerDistance: getDistanceFromCenter(tileBounds),
+        centerDistance: getDistanceFromCenter(
+          Leaflet.latLngBounds(tileBoundsLiteral),
+        ),
       });
     }
   }
@@ -292,5 +309,10 @@ function main(): void {
   inventoryDiv.id = "statusPanel";
   inventoryDiv.textContent = "No held tokens.";
   document.body.append(inventoryDiv);
+
+  winDiv = document.createElement("div");
+  winDiv.id = "win";
+  winDiv.textContent = `You need a token worth ${WIN_REQUIREMENT} to win.`;
+  document.body.append(winDiv);
 }
 main();

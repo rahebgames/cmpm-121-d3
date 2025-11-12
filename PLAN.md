@@ -70,8 +70,8 @@ Key gameplay challenge: Can players move around to collect tokens?
 - [x] move player when buttons are pressed
 - [x] make spawn and despawn of cells also work when map is panned
 - [x] make cells reset when respawning
-- [ ] increase required token value to win
-- [ ] show required token value to win on screen
+- [x] increase required token value to win
+- [x] show required token value to win on screen
 
 ##### Non-Required Tips
 
