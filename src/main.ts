@@ -236,13 +236,16 @@ function createRectangle(
 // Web Mercator projection makes cells look rectangular, they are actually square
 function drawCells(): void {
   const bounds = map.getBounds();
-  const south = bounds.getSouth();
-  const north = bounds.getNorth();
-  const west = bounds.getWest();
-  const east = bounds.getEast();
+  const south = Math.round(bounds.getSouth() / TILE_DEGREES);
+  const north = Math.round(bounds.getNorth() / TILE_DEGREES);
+  const west = Math.round(bounds.getWest() / TILE_DEGREES);
+  const east = Math.round(bounds.getEast() / TILE_DEGREES);
 
-  for (let lat = south; lat <= north; lat += TILE_DEGREES) {
-    for (let lng = west; lng <= east; lng += TILE_DEGREES) {
+  for (let gridY = south; gridY <= north; gridY++) {
+    for (let gridX = west; gridX <= east; gridX++) {
+      const lat = gridY * TILE_DEGREES;
+      const lng = gridX * TILE_DEGREES;
+
       const seed = `${lat}, ${lng}`;
       if (luck(seed) >= CACHE_SPAWN_PROBABILITY) continue;
 
@@ -262,7 +265,7 @@ function drawCells(): void {
       cells.set(rect, {
         marker: iconMarker,
         token: { value: tokenValue },
-        gridCoords: { x: 0, y: 0 },
+        gridCoords: { x: gridX, y: gridY },
         centerDistance: getDistanceFromCenter(tileBounds),
       });
     }
