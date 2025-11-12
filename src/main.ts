@@ -34,6 +34,7 @@ const INTERACTABLE_RANGE = 40;
 
 /* global variables */
 let map: Leaflet.Map;
+let cellGroup: Leaflet.FeatureGroup;
 const cells = new Map<Leaflet.Rectangle, Cell>();
 
 let inventoryDiv: HTMLDivElement;
@@ -107,6 +108,12 @@ function createMap(): void {
     scrollWheelZoom: false,
   });
 
+  map.on("moveend", function (_e) {
+    cellGroup.clearLayers();
+    cells.clear();
+    drawCells();
+  });
+
   Leaflet.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: GAMEPLAY_ZOOM_LEVEL,
     attribution:
@@ -116,12 +123,15 @@ function createMap(): void {
   playerMarker = Leaflet.marker(CLASSROOM_LATLNG);
   playerMarker.bindTooltip("That's you!");
   playerMarker.addTo(map);
+
+  cellGroup = Leaflet.featureGroup();
+  cellGroup.addTo(map);
 }
 
 function getRandomTokenValue(seed: string): number {
-  const randValue = luck(seed);
-  if (randValue <= 0.6) return 1;
-  if (randValue <= 0.9) return 2;
+  const randValue = luck(seed) * 10;
+  if (randValue <= 0.8) return 1;
+  if (randValue <= 0.95) return 2;
   return 4;
 }
 
@@ -153,7 +163,7 @@ function createIcon(
     interactive: false,
   });
 
-  iconMarker.addTo(map);
+  iconMarker.addTo(cellGroup);
   return iconMarker;
 }
 
@@ -229,7 +239,7 @@ function createRectangle(
     if (inventory != null && inventory.value >= 8) win();
   });
 
-  rect.addTo(map);
+  rect.addTo(cellGroup);
   return rect;
 }
 
