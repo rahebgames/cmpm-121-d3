@@ -309,9 +309,7 @@ function coordsToLatLng(coords: Point): Leaflet.LatLng {
   return new Leaflet.LatLng(coords.y * TILE_DEGREES, coords.x * TILE_DEGREES);
 }
 
-// Web Mercator projection makes cells look rectangular, they are actually square
-function drawCells(): void {
-  const dirs = getMapBoundsDirections();
+function createCellsFromMemory(): Point[] {
   const cellsReadFromMemory: Point[] = [];
 
   while (cellMemory.length > 0) {
@@ -342,6 +340,14 @@ function drawCells(): void {
 
     cellsReadFromMemory.push(data.gridCoords);
   }
+
+  return cellsReadFromMemory;
+}
+
+// Web Mercator projection makes cells look rectangular, they are actually square
+function drawCells(): void {
+  const dirs = getMapBoundsDirections();
+  const cellsReadFromMemory = createCellsFromMemory();
 
   for (let gridY = dirs.south; gridY <= dirs.north; gridY++) {
     for (let gridX = dirs.west; gridX <= dirs.east; gridX++) {
