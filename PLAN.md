@@ -90,11 +90,11 @@ Key gameplay challenge: Can the player's actions keep persistence after the cell
 
 The first software requirement (flyweight pattern) is already comleted in previous steps.
 
-- [ ] use the memento pattern or something similar for modified cells
+- [x] use the memento pattern or something similar for modified cells
 
 ##### Gameplay Requirements
 
-- [ ] give cells persistent memory
+- [x] give cells persistent memory
 
 ##### Non-Required Tips
 

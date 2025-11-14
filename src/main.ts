@@ -24,11 +24,16 @@ interface Token {
 
 interface Cell {
   marker: Leaflet.Marker;
-  token: Token | null;
-  gridCoords: Point;
+  data: CellData;
   centerDistance: Point;
   rect: Leaflet.Rectangle;
   isInteractive: boolean;
+}
+
+interface CellData {
+  token: Token | null;
+  gridCoords: Point;
+  modified: boolean;
 }
 
 /* constants */
@@ -47,6 +52,7 @@ const winText = "You win!";
 let map: Leaflet.Map;
 let cellGroup: Leaflet.FeatureGroup;
 const cells = new Map<Leaflet.Rectangle, Cell>();
+const cellMemory: CellData[] = [];
 
 let inventoryDiv: HTMLDivElement;
 let winDiv: HTMLDivElement;
@@ -124,8 +130,9 @@ function createMap(): void {
     const dirs = getMapBoundsDirections();
 
     for (const [rect, cell] of cells) {
-      const { x, y } = cell.gridCoords;
+      const { x, y } = cell.data.gridCoords;
       if (y < dirs.south || y > dirs.north || x < dirs.west || x > dirs.east) {
+        if (cell.data.modified) cellMemory.push(cell.data);
         rect.remove();
         cell.marker.remove();
         cells.delete(rect);
@@ -168,17 +175,26 @@ function getDistanceFromCenter(
 }
 
 function createIcon(
-  tokenValue: number,
+  tokenValue: number | null,
   tileBoundsLiteral: Leaflet.LatLngBoundsLiteral,
 ): Leaflet.Marker {
   const tileBounds = Leaflet.latLngBounds(tileBoundsLiteral);
   const centerDist = getDistanceFromCenter(tileBounds);
 
-  const icon = Leaflet.divIcon({
-    html: `<p>${tokenValue}</p>`,
-    className: "icon",
-    iconAnchor: [centerDist.x + 6, centerDist.y + 40],
-  });
+  let icon: Leaflet.DivIcon;
+  if (tokenValue != null) {
+    icon = Leaflet.divIcon({
+      html: `<p>${tokenValue}</p>`,
+      className: "icon",
+      iconAnchor: [centerDist.x + 6, centerDist.y + 40],
+    });
+  } else {
+    icon = Leaflet.divIcon({
+      html: `<p> </p>`,
+      className: "icon",
+      iconAnchor: [centerDist.x + 6, centerDist.y + 40],
+    });
+  }
 
   const center = tileBounds.getCenter();
   const iconMarker = Leaflet.marker(center, {
@@ -266,18 +282,21 @@ function createRectangle(
     if (!cell?.isInteractive) return;
 
     if (
-      inventory?.value == cells.get(e.target)!.token?.value && inventory != null
+      inventory?.value == cells.get(e.target)!.data.token?.value &&
+      inventory != null
     ) {
-      cells.get(e.target)!.token!.value *= 2;
+      cells.get(e.target)!.data.token!.value *= 2;
       inventory = null;
+      cells.get(e.target)!.data.modified = true;
     } else {
       const temp = inventory;
-      inventory = cells.get(e.target)!.token;
-      cells.get(e.target)!.token = temp;
+      inventory = cells.get(e.target)!.data.token;
+      cells.get(e.target)!.data.token = temp;
+      cells.get(e.target)!.data.modified = true;
     }
 
     updateInventoryDisplay();
-    updateCellDisplay(e.target, cells.get(e.target)!.token);
+    updateCellDisplay(e.target, cells.get(e.target)!.data.token);
 
     if (inventory != null && inventory.value >= WIN_REQUIREMENT) win();
   });
@@ -286,19 +305,59 @@ function createRectangle(
   return rect;
 }
 
+function coordsToLatLng(coords: Point): Leaflet.LatLng {
+  return new Leaflet.LatLng(coords.y * TILE_DEGREES, coords.x * TILE_DEGREES);
+}
+
 // Web Mercator projection makes cells look rectangular, they are actually square
 function drawCells(): void {
   const dirs = getMapBoundsDirections();
+  const cellsReadFromMemory: Point[] = [];
+
+  while (cellMemory.length > 0) {
+    const data = cellMemory.pop();
+    if (!data) continue;
+
+    const latLng = coordsToLatLng(data.gridCoords);
+
+    const tileBoundsLiteral: Leaflet.LatLngBoundsLiteral = [
+      [latLng.lat, latLng.lng],
+      [latLng.lat + TILE_DEGREES, latLng.lng + TILE_DEGREES],
+    ];
+
+    let iconMarker: Leaflet.Marker;
+    if (data.token == null) iconMarker = createIcon(null, tileBoundsLiteral);
+    else iconMarker = createIcon(data.token.value, tileBoundsLiteral);
+    const rect = createRectangle(tileBoundsLiteral);
+
+    cells.set(rect, {
+      marker: iconMarker,
+      data: data,
+      centerDistance: getDistanceFromCenter(
+        Leaflet.latLngBounds(tileBoundsLiteral),
+      ),
+      rect: rect,
+      isInteractive: false,
+    });
+
+    cellsReadFromMemory.push(data.gridCoords);
+  }
 
   for (let gridY = dirs.south; gridY <= dirs.north; gridY++) {
     for (let gridX = dirs.west; gridX <= dirs.east; gridX++) {
       if (
         Array.from(cells.values()).some((cell) =>
-          cell.gridCoords.x === gridX && cell.gridCoords.y === gridY
+          cell.data.gridCoords.x === gridX && cell.data.gridCoords.y === gridY
         )
       ) {
         continue;
       }
+
+      if (
+        cellsReadFromMemory.find((coords) =>
+          coords.x == gridX && coords.y == gridY
+        )
+      ) continue;
 
       const lat = gridY * TILE_DEGREES;
       const lng = gridX * TILE_DEGREES;
@@ -316,8 +375,11 @@ function drawCells(): void {
 
       cells.set(rect, {
         marker: iconMarker,
-        token: { value: tokenValue },
-        gridCoords: { x: gridX, y: gridY },
+        data: {
+          token: { value: tokenValue },
+          gridCoords: { x: gridX, y: gridY },
+          modified: false,
+        },
         centerDistance: getDistanceFromCenter(
           Leaflet.latLngBounds(tileBoundsLiteral),
         ),
