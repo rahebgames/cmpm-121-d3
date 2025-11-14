@@ -78,3 +78,24 @@ Key gameplay challenge: Can players move around to collect tokens?
 - [x] change interactibility of cells based on distance (instead of checking on click)
 - [x] create interface for cells independent of visual representation
 - [x] add visual indicator for interactable cells
+
+### D3.c: Object persistence
+
+Key technical challenge: Can I keep track of off screen cells in a memory efficient way?
+Key gameplay challenge: Can the player's actions keep persistence after the cells leave the screen?
+
+#### Steps
+
+##### Software Requirements
+
+The first software requirement (flyweight pattern) is already comleted in previous steps.
+
+- [ ] use the memento pattern or something similar for modified cells
+
+##### Gameplay Requirements
+
+- [ ] give cells persistent memory
+
+##### Non-Required Tips
+
+These are all already completed in previous steps.
