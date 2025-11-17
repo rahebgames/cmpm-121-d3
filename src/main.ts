@@ -5,9 +5,14 @@ import "./style.css";
 import "./_leafletWorkaround.ts";
 import luck from "./_luck.ts";
 
-import { getLocation } from "./geolocation.ts";
+import { startLocationTracking, stopLocationTracking } from "./geolocation.ts";
 
 /* data types */
+enum InputMethod {
+  LOCATION_TRACKING,
+  MOVEMENT_BUTTONS,
+}
+
 interface Point {
   x: number;
   y: number;
@@ -56,6 +61,12 @@ let cellGroup: Leaflet.FeatureGroup;
 const cells = new Map<Leaflet.Rectangle, Cell>();
 const cellMemory: CellData[] = [];
 
+let swapControlMethodButton: HTMLButtonElement;
+const locationTrackingText = "Swap To Location Tracking";
+const buttonMovementText = "Swap To Movement Buttons";
+let controlMethod: InputMethod = InputMethod.MOVEMENT_BUTTONS;
+
+let controlPanelDiv: HTMLDivElement;
 let inventoryDiv: HTMLDivElement;
 let winDiv: HTMLDivElement;
 
@@ -70,11 +81,39 @@ function movePlayer(latOffset: number, lngOffset: number) {
   );
 }
 
-function createButtons(): void {
-  const controlPanelDiv = document.createElement("div");
+function createModeSwappingButton(): void {
+  swapControlMethodButton = document.createElement("button");
+  swapControlMethodButton.addEventListener("click", (_e) => {
+    if (controlMethod == InputMethod.LOCATION_TRACKING) {
+      controlMethod = InputMethod.MOVEMENT_BUTTONS;
+      swapControlMethodButton.textContent = locationTrackingText;
+      stopLocationTracking();
+      createMovementButtons();
+    } else {
+      controlMethod = InputMethod.LOCATION_TRACKING;
+      swapControlMethodButton.textContent = buttonMovementText;
+      startLocationTracking(onPlayerPositionChanged);
+      deleteMovementButtons();
+    }
+  });
+  document.body.append(swapControlMethodButton);
+}
+
+function createHeaderElements(): void {
+  createModeSwappingButton();
+
+  controlPanelDiv = document.createElement("div");
   controlPanelDiv.id = "controlPanel";
   document.body.append(controlPanelDiv);
+}
 
+function deleteMovementButtons(): void {
+  while (controlPanelDiv.childElementCount > 0) {
+    controlPanelDiv.removeChild(controlPanelDiv.lastChild!);
+  }
+}
+
+function createMovementButtons(): void {
   const northButton = document.createElement("button");
   northButton.classList.add("moveButton");
   northButton.textContent = "↑";
@@ -408,7 +447,14 @@ function onPlayerPositionChanged(position: GeolocationPosition) {
 }
 
 function main(): void {
-  createButtons();
+  createHeaderElements();
+
+  if (controlMethod == InputMethod.MOVEMENT_BUTTONS) {
+    swapControlMethodButton.textContent = locationTrackingText;
+    createMovementButtons();
+  } else {
+    swapControlMethodButton.textContent = buttonMovementText;
+  }
 
   createMap();
   drawCells();
@@ -424,6 +470,5 @@ function main(): void {
   document.body.append(winDiv);
 
   movePlayer(0, 0);
-  getLocation(onPlayerPositionChanged);
 }
 main();

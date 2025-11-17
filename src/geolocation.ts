@@ -1,7 +1,23 @@
-export function getLocation(success: PositionCallback) {
+let trackingID: number = -1;
+
+export function stopLocationTracking(): void {
+  if (trackingID == -1) {
+    throw new Error("Attempt to stop nonexistent location tracking.");
+  }
+  navigator.geolocation.clearWatch(trackingID);
+  trackingID = -1;
+}
+
+export function startLocationTracking(success: PositionCallback): void {
+  if (trackingID != -1) {
+    throw new Error(
+      "Attempt to start multiple instances of location tracking.",
+    );
+  }
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(success, error);
-    navigator.geolocation.watchPosition(success, error);
+    trackingID = navigator.geolocation.watchPosition(success, error);
+    console.log(trackingID);
   } else {
     alert("Geolocation is not supported by this browser.");
   }

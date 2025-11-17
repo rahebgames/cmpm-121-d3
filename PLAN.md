@@ -118,4 +118,4 @@ Key gameplay challenge: Can the player's position depend on their position in th
 - [x] make player able to move in the game by moving in real life
 - [ ] make game state be preserved after game is closed
 - [ ] add a button to start a new game
-- [ ] add a button to switch between button controls and geolocation movement
+- [x] add a button to switch between button controls and geolocation movement
