@@ -5,6 +5,8 @@ import "./style.css";
 import "./_leafletWorkaround.ts";
 import luck from "./_luck.ts";
 
+import { getLocation } from "./geolocation.ts";
+
 /* data types */
 interface Point {
   x: number;
@@ -396,6 +398,15 @@ function drawCells(): void {
   }
 }
 
+function onPlayerPositionChanged(position: GeolocationPosition) {
+  const playerPos: Leaflet.LatLngExpression = [
+    position.coords.latitude,
+    position.coords.longitude,
+  ];
+  playerMarker.setLatLng(playerPos);
+  if (!map.getBounds().contains(playerPos)) map.panTo(playerPos);
+}
+
 function main(): void {
   createButtons();
 
@@ -413,5 +424,6 @@ function main(): void {
   document.body.append(winDiv);
 
   movePlayer(0, 0);
+  getLocation(onPlayerPositionChanged);
 }
 main();

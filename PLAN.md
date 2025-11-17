@@ -88,7 +88,7 @@ Key gameplay challenge: Can the player's actions keep persistence after the cell
 
 ##### Software Requirements
 
-The first software requirement (flyweight pattern) is already comleted in previous steps.
+The first software requirement (flyweight pattern) is already completed in previous steps.
 
 - [x] use the memento pattern or something similar for modified cells
 
@@ -99,3 +99,23 @@ The first software requirement (flyweight pattern) is already comleted in previo
 ##### Non-Required Tips
 
 These are all already completed in previous steps.
+
+### D3.d: Gameplay Across Real-world Space and Time
+
+Key technical challenge: Can I make the player's progress be saved across page loads?
+Key gameplay challenge: Can the player's position depend on their position in the real world?
+
+#### Steps
+
+##### Software Requirements
+
+- [x] use browser geolocation API to control player movement
+- [x] use Facade design pattern for movement control system
+- [ ] use browser localStorage API to save game state between page loads
+
+##### Gameplay Requirements
+
+- [x] make player able to move in the game by moving in real life
+- [ ] make game state be preserved after game is closed
+- [ ] add a button to start a new game
+- [ ] add a button to switch between button controls and geolocation movement
