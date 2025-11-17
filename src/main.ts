@@ -81,20 +81,24 @@ function movePlayer(latOffset: number, lngOffset: number) {
   );
 }
 
+function swapMovementMode() {
+  if (controlMethod == InputMethod.LOCATION_TRACKING) {
+    controlMethod = InputMethod.MOVEMENT_BUTTONS;
+    swapControlMethodButton.textContent = locationTrackingText;
+    stopLocationTracking();
+    createMovementButtons();
+  } else {
+    controlMethod = InputMethod.LOCATION_TRACKING;
+    swapControlMethodButton.textContent = buttonMovementText;
+    startLocationTracking(onPlayerPositionChanged);
+    deleteMovementButtons();
+  }
+}
+
 function createModeSwappingButton(): void {
   swapControlMethodButton = document.createElement("button");
   swapControlMethodButton.addEventListener("click", (_e) => {
-    if (controlMethod == InputMethod.LOCATION_TRACKING) {
-      controlMethod = InputMethod.MOVEMENT_BUTTONS;
-      swapControlMethodButton.textContent = locationTrackingText;
-      stopLocationTracking();
-      createMovementButtons();
-    } else {
-      controlMethod = InputMethod.LOCATION_TRACKING;
-      swapControlMethodButton.textContent = buttonMovementText;
-      startLocationTracking(onPlayerPositionChanged);
-      deleteMovementButtons();
-    }
+    swapMovementMode();
   });
   document.body.append(swapControlMethodButton);
 }

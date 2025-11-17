@@ -17,7 +17,6 @@ export function startLocationTracking(success: PositionCallback): void {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(success, error);
     trackingID = navigator.geolocation.watchPosition(success, error);
-    console.log(trackingID);
   } else {
     alert("Geolocation is not supported by this browser.");
   }
