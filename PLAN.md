@@ -111,11 +111,11 @@ Key gameplay challenge: Can the player's position depend on their position in th
 
 - [x] use browser geolocation API to control player movement
 - [x] use Facade design pattern for movement control system
-- [ ] use browser localStorage API to save game state between page loads
+- [x] use browser localStorage API to save game state between page loads
 
 ##### Gameplay Requirements
 
 - [x] make player able to move in the game by moving in real life
-- [ ] make game state be preserved after game is closed
+- [x] make game state be preserved after game is closed
 - [ ] add a button to start a new game
 - [x] add a button to switch between button controls and geolocation movement

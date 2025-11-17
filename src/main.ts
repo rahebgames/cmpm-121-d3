@@ -59,7 +59,7 @@ const winText = "You win!";
 let map: Leaflet.Map;
 let cellGroup: Leaflet.FeatureGroup;
 const cells = new Map<Leaflet.Rectangle, Cell>();
-const cellMemory: CellData[] = [];
+if (!localStorage.cellMemory) localStorage.cellMemory = JSON.stringify([]);
 
 let swapControlMethodButton: HTMLButtonElement;
 const locationTrackingText = "Swap To Location Tracking";
@@ -74,6 +74,19 @@ let playerMarker: Leaflet.Marker;
 let inventory: Token | null = null;
 
 /* functions */
+function saveCellToMemory(data: CellData) {
+  const cellStorage = JSON.parse(localStorage.cellMemory || "[]");
+
+  const index = cellStorage.findIndex((d: CellData) =>
+    d.gridCoords.x === data.gridCoords.x && d.gridCoords.y === data.gridCoords.y
+  );
+
+  if (index !== -1) cellStorage[index] = data;
+  else cellStorage.push(data);
+
+  localStorage.cellMemory = JSON.stringify(cellStorage);
+}
+
 function movePlayer(latOffset: number, lngOffset: number) {
   const pos = playerMarker.getLatLng();
   playerMarker.setLatLng([pos.lat + latOffset, pos.lng + lngOffset]).fire(
@@ -177,7 +190,6 @@ function createMap(): void {
     for (const [rect, cell] of cells) {
       const { x, y } = cell.data.gridCoords;
       if (y < dirs.south || y > dirs.north || x < dirs.west || x > dirs.east) {
-        if (cell.data.modified) cellMemory.push(cell.data);
         rect.remove();
         cell.marker.remove();
         cells.delete(rect);
@@ -340,6 +352,8 @@ function createRectangle(
       cells.get(e.target)!.data.modified = true;
     }
 
+    saveCellToMemory(cells.get(e.target)!.data);
+
     updateInventoryDisplay();
     updateCellDisplay(e.target, cells.get(e.target)!.data.token);
 
@@ -356,10 +370,19 @@ function coordsToLatLng(coords: Point): Leaflet.LatLng {
 
 function createCellsFromMemory(): Point[] {
   const cellsReadFromMemory: Point[] = [];
+  const existingCoords = new Set<string>();
+  for (const cell of cells.values()) {
+    existingCoords.add(`${cell.data.gridCoords.x},${cell.data.gridCoords.y}`);
+  }
 
-  while (cellMemory.length > 0) {
-    const data = cellMemory.pop();
+  const cellStorage = JSON.parse(localStorage.cellMemory || "[]");
+  for (const data of cellStorage) {
     if (!data) continue;
+    const coordKey = `${data.gridCoords.x},${data.gridCoords.y}`;
+    if (existingCoords.has(coordKey)) {
+      cellsReadFromMemory.push(data.gridCoords);
+      continue;
+    }
 
     const latLng = coordsToLatLng(data.gridCoords);
 
@@ -367,10 +390,9 @@ function createCellsFromMemory(): Point[] {
       [latLng.lat, latLng.lng],
       [latLng.lat + TILE_DEGREES, latLng.lng + TILE_DEGREES],
     ];
-
-    let iconMarker: Leaflet.Marker;
-    if (data.token == null) iconMarker = createIcon(null, tileBoundsLiteral);
-    else iconMarker = createIcon(data.token.value, tileBoundsLiteral);
+    const iconMarker = data.token
+      ? createIcon(data.token.value, tileBoundsLiteral)
+      : createIcon(null, tileBoundsLiteral);
     const rect = createRectangle(tileBoundsLiteral);
 
     cells.set(rect, {
@@ -394,21 +416,16 @@ function drawCells(): void {
   const dirs = getMapBoundsDirections();
   const cellsReadFromMemory = createCellsFromMemory();
 
+  const seenCoords = new Set(cellsReadFromMemory.map((c) => `${c.x},${c.y}`));
+  for (const cell of cells.values()) {
+    const { x, y } = cell.data.gridCoords;
+    seenCoords.add(`${x},${y}`);
+  }
+
   for (let gridY = dirs.south; gridY <= dirs.north; gridY++) {
     for (let gridX = dirs.west; gridX <= dirs.east; gridX++) {
-      if (
-        Array.from(cells.values()).some((cell) =>
-          cell.data.gridCoords.x === gridX && cell.data.gridCoords.y === gridY
-        )
-      ) {
-        continue;
-      }
-
-      if (
-        cellsReadFromMemory.find((coords) =>
-          coords.x == gridX && coords.y == gridY
-        )
-      ) continue;
+      const coordKey = `${gridX},${gridY}`;
+      if (seenCoords.has(coordKey)) continue;
 
       const lat = gridY * TILE_DEGREES;
       const lng = gridX * TILE_DEGREES;
