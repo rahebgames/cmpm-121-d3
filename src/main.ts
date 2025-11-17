@@ -116,7 +116,25 @@ function createModeSwappingButton(): void {
   document.body.append(swapControlMethodButton);
 }
 
+function deleteAllCells() {
+  for (const [rect, cell] of cells) {
+    rect.remove();
+    cell.marker.remove();
+  }
+  cells.clear();
+}
+
 function createHeaderElements(): void {
+  const newGameButton = document.createElement("button");
+  newGameButton.textContent = "New Game";
+  newGameButton.addEventListener("click", (_e) => {
+    localStorage.cellMemory = "[]";
+    deleteAllCells();
+    drawCells();
+    movePlayer(0, 0);
+  });
+  document.body.append(newGameButton);
+
   createModeSwappingButton();
 
   controlPanelDiv = document.createElement("div");
@@ -170,6 +188,19 @@ function getMapBoundsDirections(): Directions {
   return { north: north, east: east, south: south, west: west };
 }
 
+function deleteOutsideCells() {
+  const dirs = getMapBoundsDirections();
+
+  for (const [rect, cell] of cells) {
+    const { x, y } = cell.data.gridCoords;
+    if (y < dirs.south || y > dirs.north || x < dirs.west || x > dirs.east) {
+      rect.remove();
+      cell.marker.remove();
+      cells.delete(rect);
+    }
+  }
+}
+
 function createMap(): void {
   const mapDiv = document.createElement("div");
   mapDiv.id = "map";
@@ -185,17 +216,7 @@ function createMap(): void {
   });
 
   map.on("moveend", function () {
-    const dirs = getMapBoundsDirections();
-
-    for (const [rect, cell] of cells) {
-      const { x, y } = cell.data.gridCoords;
-      if (y < dirs.south || y > dirs.north || x < dirs.west || x > dirs.east) {
-        rect.remove();
-        cell.marker.remove();
-        cells.delete(rect);
-      }
-    }
-
+    deleteOutsideCells();
     drawCells();
     movePlayer(0, 0);
   });
