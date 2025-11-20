@@ -1,9 +1,9 @@
 // @deno-types="npm:@types/leaflet"
 import Leaflet from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "./style.css";
 import "./_leafletWorkaround.ts";
 import luck from "./_luck.ts";
+import "./style.css";
 
 import { startLocationTracking, stopLocationTracking } from "./geolocation.ts";
 
@@ -367,9 +367,9 @@ function createRectangle(
       inventory = null;
       cells.get(e.target)!.data.modified = true;
     } else {
-      const temp = inventory;
+      const inventoryVal = inventory;
       inventory = cells.get(e.target)!.data.token;
-      cells.get(e.target)!.data.token = temp;
+      cells.get(e.target)!.data.token = inventoryVal;
       cells.get(e.target)!.data.modified = true;
     }
 
@@ -389,12 +389,39 @@ function coordsToLatLng(coords: Point): Leaflet.LatLng {
   return new Leaflet.LatLng(coords.y * TILE_DEGREES, coords.x * TILE_DEGREES);
 }
 
-function createCellsFromMemory(): Point[] {
-  const cellsReadFromMemory: Point[] = [];
+function getExistingCoords(): Set<string> {
   const existingCoords = new Set<string>();
   for (const cell of cells.values()) {
     existingCoords.add(`${cell.data.gridCoords.x},${cell.data.gridCoords.y}`);
   }
+  return existingCoords;
+}
+
+function createRectangleFromMemory(data: CellData): void {
+  const latLng = coordsToLatLng(data.gridCoords);
+  const tileBoundsLiteral: Leaflet.LatLngBoundsLiteral = [
+    [latLng.lat, latLng.lng],
+    [latLng.lat + TILE_DEGREES, latLng.lng + TILE_DEGREES],
+  ];
+  const iconMarker = data.token
+    ? createIcon(data.token.value, tileBoundsLiteral)
+    : createIcon(null, tileBoundsLiteral);
+  const rect = createRectangle(tileBoundsLiteral);
+
+  cells.set(rect, {
+    marker: iconMarker,
+    data: data,
+    centerDistance: getDistanceFromCenter(
+      Leaflet.latLngBounds(tileBoundsLiteral),
+    ),
+    rect: rect,
+    isInteractive: false,
+  });
+}
+
+function createCellsFromMemory(): Point[] {
+  const cellsReadFromMemory: Point[] = [];
+  const existingCoords = getExistingCoords();
 
   const cellStorage = JSON.parse(localStorage.cellMemory || "[]");
   for (const data of cellStorage) {
@@ -405,36 +432,44 @@ function createCellsFromMemory(): Point[] {
       continue;
     }
 
-    const latLng = coordsToLatLng(data.gridCoords);
-
-    const tileBoundsLiteral: Leaflet.LatLngBoundsLiteral = [
-      [latLng.lat, latLng.lng],
-      [latLng.lat + TILE_DEGREES, latLng.lng + TILE_DEGREES],
-    ];
-    const iconMarker = data.token
-      ? createIcon(data.token.value, tileBoundsLiteral)
-      : createIcon(null, tileBoundsLiteral);
-    const rect = createRectangle(tileBoundsLiteral);
-
-    cells.set(rect, {
-      marker: iconMarker,
-      data: data,
-      centerDistance: getDistanceFromCenter(
-        Leaflet.latLngBounds(tileBoundsLiteral),
-      ),
-      rect: rect,
-      isInteractive: false,
-    });
-
+    createRectangleFromMemory(data);
     cellsReadFromMemory.push(data.gridCoords);
   }
 
   return cellsReadFromMemory;
 }
 
+function createCell(
+  cellCoords: Leaflet.LatLng,
+  gridCoords: Point,
+): void {
+  const seed = `${cellCoords.lat}, ${cellCoords.lng}`;
+  const tileBoundsLiteral: Leaflet.LatLngBoundsLiteral = [
+    [cellCoords.lat, cellCoords.lng],
+    [cellCoords.lat + TILE_DEGREES, cellCoords.lng + TILE_DEGREES],
+  ];
+
+  const tokenValue = getRandomTokenValue(seed);
+  const iconMarker = createIcon(tokenValue, tileBoundsLiteral);
+  const rect = createRectangle(tileBoundsLiteral);
+
+  cells.set(rect, {
+    marker: iconMarker,
+    data: {
+      token: { value: tokenValue },
+      gridCoords: gridCoords,
+      modified: false,
+    },
+    centerDistance: getDistanceFromCenter(
+      Leaflet.latLngBounds(tileBoundsLiteral),
+    ),
+    rect: rect,
+    isInteractive: false,
+  });
+}
+
 // Web Mercator projection makes cells look rectangular, they are actually square
 function drawCells(): void {
-  const dirs = getMapBoundsDirections();
   const cellsReadFromMemory = createCellsFromMemory();
 
   const seenCoords = new Set(cellsReadFromMemory.map((c) => `${c.x},${c.y}`));
@@ -443,38 +478,21 @@ function drawCells(): void {
     seenCoords.add(`${x},${y}`);
   }
 
+  const dirs = getMapBoundsDirections();
   for (let gridY = dirs.south; gridY <= dirs.north; gridY++) {
     for (let gridX = dirs.west; gridX <= dirs.east; gridX++) {
       const coordKey = `${gridX},${gridY}`;
       if (seenCoords.has(coordKey)) continue;
 
-      const lat = gridY * TILE_DEGREES;
-      const lng = gridX * TILE_DEGREES;
-      const seed = `${lat}, ${lng}`;
+      const cellCoords = new Leaflet.LatLng(
+        gridY * TILE_DEGREES,
+        gridX * TILE_DEGREES,
+      );
+      const seed = `${cellCoords.lat}, ${cellCoords.lng}`;
       if (luck(seed) >= CACHE_SPAWN_PROBABILITY) continue;
 
-      const tileBoundsLiteral: Leaflet.LatLngBoundsLiteral = [
-        [lat, lng],
-        [lat + TILE_DEGREES, lng + TILE_DEGREES],
-      ];
-
-      const tokenValue = getRandomTokenValue(seed);
-      const iconMarker = createIcon(tokenValue, tileBoundsLiteral);
-      const rect = createRectangle(tileBoundsLiteral);
-
-      cells.set(rect, {
-        marker: iconMarker,
-        data: {
-          token: { value: tokenValue },
-          gridCoords: { x: gridX, y: gridY },
-          modified: false,
-        },
-        centerDistance: getDistanceFromCenter(
-          Leaflet.latLngBounds(tileBoundsLiteral),
-        ),
-        rect: rect,
-        isInteractive: false,
-      });
+      const gridCoords: Point = { x: gridX, y: gridY };
+      createCell(cellCoords, gridCoords);
     }
   }
 }
